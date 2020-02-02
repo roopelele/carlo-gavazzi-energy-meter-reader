@@ -11,7 +11,10 @@ import string
 import json
 
 data = {}
+CurrentUsage = 0
+CurrentLevel = 0
 
+FILENAME = "data.txt"
 ADDRESS = 0
 DEVICE = "/dev/ttyUSB0"
 BAUDRATE = 2400
@@ -36,6 +39,7 @@ def ping_address(ser, address, retries=5):
 
     return False
 
+
 def do_reg_file(args):
     global data
     data = {}
@@ -43,6 +47,7 @@ def do_reg_file(args):
         frame = meterbus.load(f.read())
         if frame is not None:
             data = frame.to_JSON()
+
 
 def do_char_dev(args):
     global data
@@ -81,28 +86,50 @@ def do_char_dev(args):
     except serial.serialutil.SerialException as e:
         print(e)
 
+def control(x):
+    global CurrentLevel
+    value = float(x)
+    while value > 150:
+        if CurrentLevel == 9:
+            break
+        CurrentLevel += 1
+        value -= 111
+    while value < -150:
+        if CurrentLevel == 0:
+            break
+        CurrentLevel -= 1
+        value += 111
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Request data over serial M-Bus for devices.')
-    parser.add_argument('-d', action='store_true',
-                        help='Enable verbose debug')
-    parser.add_argument('-r', '--retries',
-                        type=int, default=5,
-                        help='Number of ping retries for each address')
 
-    args = parser.parse_args()
+def fileWrite():
+    with open(FILENAME, 'w') as file:
+        file.write(CurrentLevel)
 
-    meterbus.debug(args.d)
 
-    try:
-        mode = os.stat(DEVICE).st_mode
-        if stat.S_ISREG(mode):
-            do_reg_file(args)
-        else:
-            do_char_dev(args)
-    except OSError:
-        do_char_dev(args)
+def main():
+    if __name__ == '__main__':
+        parser = argparse.ArgumentParser(
+            description='Request data over serial M-Bus for devices.')
+        parser.add_argument('-d', action='store_true',
+                            help='Enable verbose debug')
+        parser.add_argument('-r', '--retries',
+                            type=int, default=1,
+                            help='Number of ping retries for each address')
 
-    d = json.loads(data)
-    print(d["body"]["records"][2]["value"])
+        args = parser.parse_args()
+
+        meterbus.debug(args.d)
+        while True:
+            try:
+                mode = os.stat(DEVICE).st_mode
+                if stat.S_ISREG(mode):
+                    do_reg_file(args)
+                else:
+                    do_char_dev(args)
+            except OSError:
+                do_char_dev(args)
+
+            d = json.loads(data)
+            value = d["body"]["records"][2]["value"]
+            control(value)
+            fileWrite()
