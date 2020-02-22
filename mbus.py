@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from __future__ import print_function
 
@@ -86,19 +86,6 @@ def do_char_dev(args):
     except serial.serialutil.SerialException as e:
         print(e)
 
-def control(x):
-    global CurrentLevel
-    value = float(x)
-    while value > 150:
-        if CurrentLevel == 9:
-            break
-        CurrentLevel += 1
-        value -= 111
-    while value < -150:
-        if CurrentLevel == 0:
-            break
-        CurrentLevel -= 1
-        value += 111
 
 
 def fileWrite():
@@ -131,5 +118,4 @@ def main():
 
             d = json.loads(data)
             value = d["body"]["records"][2]["value"]
-            control(value)
-            fileWrite()
+            fileWrite(value)

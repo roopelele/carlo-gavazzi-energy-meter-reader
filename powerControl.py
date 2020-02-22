@@ -1,42 +1,45 @@
-import serial
+#!/usr/bin/python3
+
+import RPi.GPIO as GPIO
 import time
+
+MIN_POWER = 20
+MAX_POWER = 1000
+PIN = 0
 
 
 def readData():
-    allowedInputs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     filename = "data.txt"
     with open(filename, 'r') as file:
         data = int(file.read())
-    if not (data in allowedInputs):
-        data = 0
     return(data)
 
 
+def control(power):
+    if power == MAX_POWER:
+        GPIO.output(PIN, 1)
+    elif power == MIN_POWER:
+        GPIO.output(PIN, 0)
+    else:
+        GPIO.output(PIN, 1)
+        time.sleep(power)
+        GPIO.output(PIN, 0)
+        time.sleep(1000 - power)
+
+
 def main():
-    ser = serial.Serial('/dev/ttyACM0', 9600)
+    GPIO.setup(pin, GPIO.OUT)
+    power = 0
     while True:
-        power = readData()
-        if power == 0:
-            ser.write(b'0')
-        elif power == 1:
-            ser.write(b'1')
-        elif power == 2:
-            ser.write(b'2')
-        elif power == 3:
-            ser.write(b'3')
-        elif power == 4:
-            ser.write(b'4')
-        elif power == 5:
-            ser.write(b'5')
-        elif power == 6:
-            ser.write(b'6')
-        elif power == 7:
-            ser.write(b'7')
-        elif power == 8:
-            ser.write(b'8')
-        elif power == 9:
-            ser.write(b'9')
-        time.sleep(1)
+        powerChange = readData()
+        power += powerChange
+        if power < MIN_POWER:
+            power = 0
+        elif power > MAX_POWER:
+            power = MAX_POWER
+        control(power)
+
+
 
 
 main()
