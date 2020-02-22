@@ -11,7 +11,7 @@ PIN = 0
 def readData():
     filename = "data.txt"
     with open(filename, 'r') as file:
-        data = int(file.read())
+        data = int(file.read()) * -1
     return(data)
 
 
