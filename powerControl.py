@@ -22,9 +22,9 @@ def control(power):
         GPIO.output(PIN, 0)
     else:
         GPIO.output(PIN, 1)
-        time.sleep(power)
+        time.sleep(power / 1000)
         GPIO.output(PIN, 0)
-        time.sleep(1000 - power)
+        time.sleep(1.0 - (power / 1000))
 
 
 def main():
