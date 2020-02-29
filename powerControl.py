@@ -9,6 +9,8 @@ POWER_DELTA = 20
 PIN = 0
 power = 0
 
+
+# This function runs once in the start, to set up the GPIO
 def setup():
     GPIO.setmode(GPIO.BOARD)
     GPIO.setup(pin, GPIO.OUT)
@@ -16,6 +18,7 @@ def setup():
     power = 0
 
 
+# This function reads the data in a file provided by other program
 def readData():
     filename = "data.txt"
     with open(filename, 'r') as file:
@@ -23,18 +26,27 @@ def readData():
     return(data)
 
 
+# This function controls power used with raspberry pi's gpio ports
+# for one second at a time
 def control(power):
     if power == MAX_POWER:
         GPIO.output(PIN, 1)
+        time.sleep(1)
+        return
     elif power == MIN_POWER:
         GPIO.output(PIN, 0)
+        time.sleep(1)
+        return
     else:
         GPIO.output(PIN, 1)
         time.sleep(power / 1000)
         GPIO.output(PIN, 0)
         time.sleep(1.0 - (power / 1000))
+        return
 
 
+# This is the core function for running all the other functions in the correct order
+# And calculating the amount of power provided
 def powerManage():
     global power
     powerChange = readData()
@@ -46,6 +58,7 @@ def powerManage():
     control(power)
 
 
+# Simple main function for the program
 def main():
     setup()
     while True:
