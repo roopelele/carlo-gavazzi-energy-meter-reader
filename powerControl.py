@@ -3,9 +3,17 @@
 import RPi.GPIO as GPIO
 import time
 
-MIN_POWER = 20
+MIN_POWER = 0
 MAX_POWER = 1000
+POWER_DELTA = 20
 PIN = 0
+power = 0
+
+def setup():
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(pin, GPIO.OUT)
+    global power
+    power = 0
 
 
 def readData():
@@ -27,18 +35,21 @@ def control(power):
         time.sleep(1.0 - (power / 1000))
 
 
-def main():
-    GPIO.setup(pin, GPIO.OUT)
-    power = 0
-    while True:
-        powerChange = readData()
-        power += powerChange
-        if power < MIN_POWER:
-            power = 0
-        elif power > MAX_POWER:
-            power = MAX_POWER
-        control(power)
+def powerManage():
+    global power
+    powerChange = readData()
+    power += powerChange
+    if power < MIN_POWER + POWER_DELTA:
+        power = MIN_POWER
+    elif power > MAX_POWER - POWER_DELTA:
+        power = MAX_POWER
+    control(power)
 
+
+def main():
+    setup()
+    while True:
+        powerManage()
 
 
 
