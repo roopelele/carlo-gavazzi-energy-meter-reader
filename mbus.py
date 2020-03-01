@@ -8,7 +8,7 @@ import time
 import os
 import stat
 import string
-import json
+import json as json
 
 data = {}
 CurrentUsage = 0
@@ -90,8 +90,7 @@ def do_char_dev(args):
 
 def fileWrite(value):
     with open(FILENAME, 'w') as file:
-        print(value)
-        file.write(value)
+        file.write(str(value))
 
 
 def main():
@@ -107,7 +106,7 @@ def main():
         args = parser.parse_args()
 
         meterbus.debug(args.d)
-        while True:
+        for i in range(0, 10):
             try:
                 mode = os.stat(DEVICE).st_mode
                 if stat.S_ISREG(mode):
@@ -118,7 +117,7 @@ def main():
                 do_char_dev(args)
 
             d = json.loads(data)
-            value = float(d["body"]["records"][2]["value"])
+            value = int(d["body"]["records"][2]["value"])
             fileWrite(value)
 
 main()
