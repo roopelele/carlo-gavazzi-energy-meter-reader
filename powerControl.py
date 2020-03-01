@@ -6,14 +6,14 @@ import time
 MIN_POWER = 0
 MAX_POWER = 1000
 POWER_DELTA = 20
-PIN = 0
+PIN = 3
 power = 0
 
 
 # This function runs once in the start, to set up the GPIO
 def setup():
     GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(pin, GPIO.OUT)
+    GPIO.setup(PIN, GPIO.OUT)
     global power
     power = 0
 
@@ -63,6 +63,7 @@ def main():
     setup()
     while True:
         powerManage()
+    GPIO.output(PIN, 0)
 
 
 
