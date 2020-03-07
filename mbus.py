@@ -106,7 +106,7 @@ def main():
         args = parser.parse_args()
 
         meterbus.debug(args.d)
-        for i in range(0, 10):
+        while True:
             try:
                 mode = os.stat(DEVICE).st_mode
                 if stat.S_ISREG(mode):
