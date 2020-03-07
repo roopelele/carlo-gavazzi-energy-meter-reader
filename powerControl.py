@@ -72,10 +72,10 @@ def fissio():
             sum = 0
             for entry in powerList:
                 sum += entry
-            minute = ((sum / 60.0) / 1000) * -1
+            minute = round( (((sum / 60.0) / 1000) * -1), 3)
             powerList = []
             with open(fissioPath, "a") as file:
-                file.write(str(int(time.time())) + ";imp;Teho;" + str(minute) + ";60;\n")
+                file.write(str(int(time.time())) + ";temp;Teho;" + str(minute) + ";null;\n")
     except ValueError:
         return
     return
