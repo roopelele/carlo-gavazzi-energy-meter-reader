@@ -10,10 +10,12 @@ import stat
 import string
 import json as json
 
+# Some variables
 data = {}
 CurrentUsage = 0
 CurrentLevel = 0
 
+# Change these according used system
 FILENAME = "data.txt"
 ADDRESS = 0
 DEVICE = "/dev/ttyUSB0"
@@ -27,6 +29,7 @@ except ImportError:
     import meterbus
 
 
+# This is example code copied from pymeterbus author
 def ping_address(ser, address, retries=5):
     for i in range(0, retries + 1):
         meterbus.send_ping_frame(ser, address)
@@ -87,7 +90,7 @@ def do_char_dev(args):
         print(e)
 
 
-
+# Write data to file
 def fileWrite(value):
     with open(FILENAME, 'w') as file:
         file.write(str(value))
@@ -95,6 +98,8 @@ def fileWrite(value):
 
 def main():
     if __name__ == '__main__':
+
+        # Some debug options, not used in working program
         parser = argparse.ArgumentParser(
             description='Request data over serial M-Bus for devices.')
         parser.add_argument('-d', action='store_true',
@@ -106,7 +111,10 @@ def main():
         args = parser.parse_args()
 
         meterbus.debug(args.d)
+
+        # Loop the main program
         while True:
+            # Retrieve the data
             try:
                 mode = os.stat(DEVICE).st_mode
                 if stat.S_ISREG(mode):
@@ -116,6 +124,7 @@ def main():
             except OSError:
                 do_char_dev(args)
 
+            # Format the data
             d = json.loads(data)
             value = int(d["body"]["records"][2]["value"])
             fileWrite(value)

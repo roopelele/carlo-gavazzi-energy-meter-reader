@@ -3,21 +3,23 @@
 import RPi.GPIO as GPIO
 import time
 
+# Some values used to calculate power
 MIN_POWER = 0
 MAX_POWER = 1000
 POWER_DELTA = 50
+# RasPi pin used to control
 PIN = 3
+# Path to fissio folder
+fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
+# Don't touch these
 power = 0
 powerList = []
-fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
 
 # This function runs once in the start, to set up the GPIO
 def setup():
     GPIO.setmode(GPIO.BOARD)
     GPIO.setup(PIN, GPIO.OUT)
-    global power
-    power = 0
 
 
 # This function reads the data in a file provided by other program
@@ -30,6 +32,7 @@ def readData():
 
 # This function controls power used with raspberry pi's gpio ports
 # for one second at a time
+# PARAM power (int): This is the amount of excess power available 
 def control(power):
     if power == MAX_POWER:
         GPIO.output(PIN, 1)
@@ -63,8 +66,7 @@ def powerManage():
     control(power)
 
 
-
-
+# This is the function for fissio integration
 def fissio():
     try:
         global powerList
