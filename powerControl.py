@@ -5,7 +5,7 @@ import time
 
 MIN_POWER = 0
 MAX_POWER = 1000
-POWER_DELTA = 20
+POWER_DELTA = 50
 PIN = 3
 power = 0
 
@@ -50,7 +50,7 @@ def control(power):
 def powerManage():
     global power
     powerChange = readData()
-    power += powerChange
+    power += powerChange - 100
     if power < MIN_POWER + POWER_DELTA:
         power = MIN_POWER
     elif power > MAX_POWER - POWER_DELTA:
