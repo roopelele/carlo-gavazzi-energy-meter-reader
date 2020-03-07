@@ -68,12 +68,12 @@ def powerManage():
 def fissio():
     global powerList
     if len(powerList) == 60:
-	sum = 0
+        sum = 0
         for entry in powerList:
-	    sum += entry
-	powerList = []
-	with open(fissioPath, "a") as file:
-	    file.write(str(time.time()) + ";imp;Teho;" + str(sum / 60.0) + ";60;")
+            sum += entry
+        powerList = []
+        with open(fissioPath, "a") as file:
+            file.write(str(time.time()) + ";imp;Teho;" + str(sum / 60.0) + ";60;")
     return
 
 
