@@ -8,6 +8,8 @@ MAX_POWER = 1000
 POWER_DELTA = 50
 PIN = 3
 power = 0
+powerList = []
+fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
 
 # This function runs once in the start, to set up the GPIO
@@ -49,13 +51,30 @@ def control(power):
 # And calculating the amount of power provided
 def powerManage():
     global power
-    powerChange = readData()
-    power += powerChange - 100
+    global powerList
+    data = readData()
+    power += data - 100
+    powerList.append(data)
+    fissio()
     if power < MIN_POWER + POWER_DELTA:
         power = MIN_POWER
     elif power > MAX_POWER - POWER_DELTA:
         power = MAX_POWER
     control(power)
+
+
+
+
+def fissio():
+    global powerList
+    if len(powerList) == 60:
+	sum = 0
+        for entry in powerList:
+	    sum += entry
+	powerList = []
+	with open(fissioPath, "a") as file:
+	    file.write(str(time.time()) + ";imp;Teho;" + str(sum / 60.0) + ";60;")
+    return
 
 
 # Simple main function for the program
