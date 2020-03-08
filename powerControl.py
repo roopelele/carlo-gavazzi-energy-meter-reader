@@ -5,10 +5,10 @@ import time
 
 # Some values used to calculate power
 MIN_POWER = 0
-MAX_POWER = 1000
+MAX_POWER = 3000
 POWER_DELTA = 50
 # RasPi pin used to control
-PIN = 3
+PINS = [3, 5, 7]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 # Don't touch these
@@ -19,7 +19,8 @@ powerList = []
 # This function runs once in the start, to set up the GPIO
 def setup():
     GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(PIN, GPIO.OUT)
+    for pin in PINS:
+        GPIO.setup(pin, GPIO.OUT)
 
 
 # This function reads the data in a file provided by other program
@@ -32,21 +33,23 @@ def readData():
 
 # This function controls power used with raspberry pi's gpio ports
 # for one second at a time
-# PARAM power (int): This is the amount of excess power available 
+# PARAM power (int): This is the amount of excess power available
 def control(power):
     if power == MAX_POWER:
-        GPIO.output(PIN, 1)
-        time.sleep(1)
-        return
+        for pin in PINS:
+            GPIO.output(pin, 1)
     elif power == MIN_POWER:
-        GPIO.output(PIN, 0)
+        for pin in PINS:
+            GPIO.output(pin, 0)
         time.sleep(1)
         return
     else:
-        GPIO.output(PIN, 1)
-        time.sleep(power / 1000)
-        GPIO.output(PIN, 0)
-        time.sleep(1.0 - (power / 1000))
+        for pin in PINS:
+            GPIO.output(pin, 1)
+        time.sleep(power / MAX_POWER)
+        for pin in PINS:
+            GPIO.output(pin, 0)
+        time.sleep(1.0 - (power / MAX_POWER))
         return
 
 
