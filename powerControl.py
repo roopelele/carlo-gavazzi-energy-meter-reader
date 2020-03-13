@@ -5,7 +5,7 @@ import time
 
 # Some values used to calculate power
 MIN_POWER = 0
-MAX_POWER = 3000
+MAX_POWER = 2000
 POWER_DELTA = 50
 # RasPi pin used to control
 PINS = [3, 5]
@@ -38,6 +38,7 @@ def control(power):
     if power == MAX_POWER:
         for pin in PINS:
             GPIO.output(pin, 1)
+	time.sleep(1)
     elif power == MIN_POWER:
         for pin in PINS:
             GPIO.output(pin, 0)
@@ -59,7 +60,7 @@ def powerManage():
     global power
     global powerList
     data = readData()
-    power += (data * 0.5) - 100
+    power += (data * 1) - 100
     powerList.append(data)
     fissio()
     if power < MIN_POWER + POWER_DELTA:
