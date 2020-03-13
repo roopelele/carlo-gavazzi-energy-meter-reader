@@ -8,7 +8,7 @@ MIN_POWER = 0
 MAX_POWER = 3000
 POWER_DELTA = 50
 # RasPi pin used to control
-PINS = [3, 5, 7]
+PINS = [3, 5]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 # Don't touch these
@@ -59,7 +59,7 @@ def powerManage():
     global power
     global powerList
     data = readData()
-    power += data - 100
+    power += (data * 0.5) - 100
     powerList.append(data)
     fissio()
     if power < MIN_POWER + POWER_DELTA:

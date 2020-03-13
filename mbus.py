@@ -19,7 +19,7 @@ CurrentLevel = 0
 FILENAME = "data.txt"
 ADDRESS = 0
 DEVICE = "/dev/ttyUSB0"
-BAUDRATE = 2400
+BAUDRATE = 9600
 
 try:
     import meterbus
