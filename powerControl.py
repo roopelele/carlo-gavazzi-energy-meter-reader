@@ -38,7 +38,8 @@ def control(power):
     if power == MAX_POWER:
         for pin in PINS:
             GPIO.output(pin, 1)
-	time.sleep(1)
+        time.sleep(1)
+        return
     elif power == MIN_POWER:
         for pin in PINS:
             GPIO.output(pin, 0)
