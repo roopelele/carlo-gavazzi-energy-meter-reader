@@ -5,7 +5,7 @@ import time
 
 # Some values used to calculate power
 MIN_POWER = 0
-MAX_POWER = 2000
+MAX_POWER = 1000
 POWER_DELTA = 50
 # RasPi pin used to control
 PINS = [3, 5]
@@ -35,24 +35,24 @@ def readData():
 # for one second at a time
 # PARAM power (int): This is the amount of excess power available
 def control(power):
-    if power == MAX_POWER:
-        for pin in PINS:
-            GPIO.output(pin, 1)
-        time.sleep(1)
-        return
-    elif power == MIN_POWER:
+    i = 0
+    if power == MIN_POWER:
         for pin in PINS:
             GPIO.output(pin, 0)
         time.sleep(1)
         return
-    else:
-        for pin in PINS:
-            GPIO.output(pin, 1)
-        time.sleep(power / MAX_POWER)
-        for pin in PINS:
-            GPIO.output(pin, 0)
-        time.sleep(1.0 - (power / MAX_POWER))
+    while power >= MAX_POWER and i < len(PINS) - 1:
+        GPIO.output(PINS[i], 1)
+        power -= 1000
+        i += 1
+    if i >= len(PINS):
+        sleep(1)
         return
+    GPIO.output(PINS[i], 1)
+    time.sleep(power / MAX_POWER)
+    GPIO.output(PINS[i], 0)
+    time.sleep(1.0 - (power / MAX_POWER))
+    return
 
 
 # This is the core function for running all the other functions in the correct order
@@ -66,8 +66,8 @@ def powerManage():
     fissio()
     if power < MIN_POWER + POWER_DELTA:
         power = MIN_POWER
-    elif power > MAX_POWER - POWER_DELTA:
-        power = MAX_POWER
+    elif power > (MAX_POWER * len(PINS)) - POWER_DELTA:
+        power = (MAX_POWER * len(PINS)
     control(power)
 
 
