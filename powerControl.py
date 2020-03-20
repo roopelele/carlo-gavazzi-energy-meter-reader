@@ -67,7 +67,7 @@ def powerManage():
     if power < MIN_POWER + POWER_DELTA:
         power = MIN_POWER
     elif power > (MAX_POWER * len(PINS)) - POWER_DELTA:
-        power = (MAX_POWER * len(PINS)
+        power = (MAX_POWER * len(PINS))
     control(power)
 
 
