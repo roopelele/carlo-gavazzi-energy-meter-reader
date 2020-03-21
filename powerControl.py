@@ -46,7 +46,7 @@ def control(p):
         p -= MAX_POWER
         i += 1
     if i >= len(PINS):
-        sleep(1)
+        time.sleep(1)
         return
     else:
         GPIO.output(PINS[i], 1)
