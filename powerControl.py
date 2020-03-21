@@ -34,24 +34,25 @@ def readData():
 # This function controls power used with raspberry pi's gpio ports
 # for one second at a time
 # PARAM power (int): This is the amount of excess power available
-def control(power):
+def control(p):
     i = 0
-    if power == MIN_POWER:
+    if p == MIN_POWER:
         for pin in PINS:
             GPIO.output(pin, 0)
         time.sleep(1)
         return
-    while power >= MAX_POWER and i < len(PINS) - 1:
+    while p >= MAX_POWER and i < len(PINS) - 1:
         GPIO.output(PINS[i], 1)
-        power -= 1000
+        p -= MAX_POWER
         i += 1
     if i >= len(PINS):
         sleep(1)
         return
-    GPIO.output(PINS[i], 1)
-    time.sleep(power / MAX_POWER)
-    GPIO.output(PINS[i], 0)
-    time.sleep(1.0 - (power / MAX_POWER))
+    else:
+        GPIO.output(PINS[i], 1)
+        time.sleep(p / MAX_POWER)
+        GPIO.output(PINS[i], 0)
+        time.sleep(1.0 - (p / MAX_POWER))
     return
 
 
