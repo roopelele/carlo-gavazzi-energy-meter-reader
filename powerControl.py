@@ -62,7 +62,7 @@ def powerManage():
     global power
     global powerList
     data = readData()
-    power += (data * 1) - 100
+    power += (data * 0.9) - 100
     powerList.append(data)
     fissio()
     if power < MIN_POWER + POWER_DELTA:
