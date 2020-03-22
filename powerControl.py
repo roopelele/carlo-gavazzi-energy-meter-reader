@@ -1,23 +1,56 @@
 #!/usr/bin/python3
 
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import time
 
 # Some values used to calculate power
 MIN_POWER = 0
 MAX_POWER = 1000
-POWER_DELTA = 50
-# RasPi pin used to control
+POWER_DELTA = 0
+EXTRA_POWER = 0
+POWER_CHANGE_MULTIPLIER = 1.0
+# RasPi pins used to control
 PINS = [3, 5, 7]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
-# Don't touch these
+# Name of the input filename
+inputFile = "data.txt"
+# Some global variables, don't touch
 power = 0
 powerList = []
 
 
+def configRead():
+    global MIN_POWER, MAX_POWER, POWER_DELTA, EXTRA_POWER, PINS, fissioPath, inputFile
+    with open("config.txt", 'r') as file:
+        for row in file:
+            data = row.split("=")
+            if len(data) != 2:
+                continue
+            var, value = data
+            value = value.rstrip()
+            if var == "MIN_POWER":
+                MIN_POWER = int(value)
+            elif var == "MAX_POWER":
+                MAX_POWER = int(value)
+            elif var == "POWER_DELTA":
+                POWER_DELTA = int(value)
+            elif var == "EXTRA_POWER":
+                EXTRA_POWER = int(value)
+            elif var == "POWER_CHANGE_MULTIPLIER":
+                POWER_CHANGE_MULTIPLIER = float(value)
+            elif var == "PINS":
+                PINS = value.split(",")
+            elif var == "FISSIO_PATH":
+                fissioPath = value
+            elif var == "inputFile":
+                inputFile = values
+
+
+
 # This function runs once in the start, to set up the GPIO
 def setup():
+    configRead()
     GPIO.setmode(GPIO.BOARD)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
@@ -25,8 +58,7 @@ def setup():
 
 # This function reads the data in a file provided by other program
 def readData():
-    filename = "data.txt"
-    with open(filename, 'r') as file:
+    with open(inputFile, 'r') as file:
         data = int(file.read()) * -1
     return(data)
 
@@ -62,7 +94,7 @@ def powerManage():
     global power
     global powerList
     data = readData()
-    power += (data * 0.9) - 100
+    power += (data * POWER_CHANGE_MULTIPLIER) - EXTRA_POWER
     powerList.append(data)
     fissio()
     if power < MIN_POWER + POWER_DELTA:
