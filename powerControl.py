@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import time
 
 # Some values used to calculate power
@@ -41,6 +41,8 @@ def configRead():
                 POWER_CHANGE_MULTIPLIER = float(value)
             elif var == "PINS":
                 PINS = value.split(",")
+                for i in range(0, len(PINS)):
+                    PINS[i] = int(PINS[i])
             elif var == "FISSIO_PATH":
                 fissioPath = value
             elif var == "inputFile":
