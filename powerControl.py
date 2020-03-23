@@ -86,7 +86,7 @@ def control(p):
         GPIO.output(PINS[i], 1)
         time.sleep(float(p) / float(MAX_POWER))
         GPIO.output(PINS[i], 0)
-        time.sleep(1.0 - (p / MAX_POWER))
+        time.sleep(1.0 - (float(p) / float(MAX_POWER)))
     return
 
 
