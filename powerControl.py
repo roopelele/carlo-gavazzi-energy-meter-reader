@@ -21,7 +21,7 @@ powerList = []
 
 
 def configRead():
-    global MIN_POWER, MAX_POWER, POWER_DELTA, EXTRA_POWER, PINS, fissioPath, inputFile
+    global MIN_POWER, MAX_POWER, POWER_DELTA, POWER_CHANGE_MULTIPLIER, EXTRA_POWER, PINS, fissioPath, inputFile
     with open("config.txt", 'r') as file:
         for row in file:
             data = row.split("=")
@@ -84,7 +84,7 @@ def control(p):
         return
     else:
         GPIO.output(PINS[i], 1)
-        time.sleep(p / MAX_POWER)
+        time.sleep(float(p) / float(MAX_POWER))
         GPIO.output(PINS[i], 0)
         time.sleep(1.0 - (p / MAX_POWER))
     return
@@ -93,8 +93,7 @@ def control(p):
 # This is the core function for running all the other functions in the correct order
 # And calculating the amount of power provided
 def powerManage():
-    global power
-    global powerList
+    global power, powerList
     data = readData()
     power += (data * POWER_CHANGE_MULTIPLIER) - EXTRA_POWER
     powerList.append(data)
