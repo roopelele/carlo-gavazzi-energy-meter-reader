@@ -18,6 +18,7 @@ inputFile = "data.txt"
 # Some global variables, don't touch
 power = 0
 powerList = []
+lastData = 0
 
 
 def configRead():
@@ -59,9 +60,18 @@ def setup():
 
 
 # This function reads the data in a file provided by other program
-def readData():
-    with open(inputFile, 'r') as file:
-        data = int(file.read()) * -1
+# returns INT 
+def readData(tries = 0):
+    if tries == 3:
+        return 0
+    try:
+        with open(inputFile, 'r') as file:
+            data = int(file.read()) * -1
+    except Exception as e:
+        time.sleep(0.01)
+        data = readData(tries + 1)
+    if data == lastData:
+        return 0
     return(data)
 
 
