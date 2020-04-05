@@ -60,8 +60,9 @@ def setup():
 
 
 # This function reads the data in a file provided by other program
-# returns INT 
+# returns INT
 def readData(tries = 0):
+    global lastData
     if tries == 3:
         return 0
     try:
@@ -72,6 +73,7 @@ def readData(tries = 0):
         data = readData(tries + 1)
     if data == lastData:
         return 0
+    lastData = data
     return(data)
 
 
