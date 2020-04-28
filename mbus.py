@@ -91,9 +91,11 @@ def do_char_dev(args):
 
 
 # Write data to file
-def fileWrite(value):
+# w = watts; a1, a2, a3 are current values 
+def fileWrite(w, a1, a2, a3):
     with open(FILENAME, 'w') as file:
-        file.write(str(value))
+        line = str(w) + "," + str(a1) + "," + str(a2) + "," + str(a3)
+        file.write(line)
 
 
 def main():
@@ -126,7 +128,10 @@ def main():
 
             # Format the data
             d = json.loads(data)
-            value = int(d["body"]["records"][2]["value"])
-            fileWrite(value)
+            w = int(d["body"]["records"][2]["value"])
+            a1 = round(float(d["body"]["records"][8]["value"]), 2)
+            a2 = round(float(d["body"]["records"][9]["value"]), 2)
+            a3 = round(float(d["body"]["records"][10]["value"]), 2)
+            fileWrite(w, a1, a2, a3)
 
 main()

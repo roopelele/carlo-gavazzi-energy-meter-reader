@@ -18,7 +18,7 @@ inputFile = "data.txt"
 # Some global variables, don't touch
 power = 0
 powerList = []
-lastData = 0
+lastData = [0, 0, 0, 0]
 
 
 def configRead():
@@ -67,12 +67,15 @@ def readData(tries = 0):
         return 0
     try:
         with open(inputFile, 'r') as file:
-            data = int(file.read()) * -1
+            data = file.read().split(",")
+            data[0] = int(data[0]) * -1
+            for i in range(1,4):
+                data[i] = float(data[i])
     except Exception as e:
         time.sleep(0.01)
         data = readData(tries + 1)
-    if data == lastData:
-        return 0
+    if data[0] == lastData[0]:
+        return [0, 0, 0, 0]
     lastData = data
     return(data)
 
@@ -106,7 +109,8 @@ def control(p):
 # And calculating the amount of power provided
 def powerManage():
     global power, powerList
-    data = readData()
+    d = readData()
+    data = d[0]
     power += (data * POWER_CHANGE_MULTIPLIER) - EXTRA_POWER
     powerList.append(lastData)
     fissio()
@@ -122,13 +126,21 @@ def fissio():
     try:
         global powerList
         if len(powerList) == 60:
+            t = str(int(time.time()))
             sum = 0
             for entry in powerList:
-                sum += entry
+                sum += entry[0]
             minute = round( (((sum / 60.0) / 1000) * -1), 3)
-            powerList = []
             with open(fissioPath, "a") as file:
-                file.write(str(int(time.time())) + ";temp;Teho;" + str(minute) + ";null;\n")
+                file.write(t + ";temp;Teho;" + str(minute) + ";null;\n")
+            for i in range(1, 4):
+                sum = 0.0
+                for entry in powerList:
+                    sum += entry[i]
+                minute = round((sum / 60), 3)
+                with open(fissioPath, "a") as file:
+                    file.write(t + ";temp;Virta_" + str(i) + ";" + str(minute) + ";null;\n")
+            powerList = []
     except ValueError:
         return
     return
