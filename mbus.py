@@ -94,8 +94,9 @@ def do_char_dev(args):
 # w = watts; a1, a2, a3 are current values 
 def fileWrite(w, a1, a2, a3):
     with open(FILENAME, 'w') as file:
-        line = str(w) + "," + str(a1) + "," + str(a2) + "," + str(a3)
-        file.write(line)
+        file.write(str(w))
+    with open("tmp.txt", 'a') as file:
+        file.write(f"{str(w)},{str(a1)},{str(a2)},{str(a3)}\n")
 
 
 def main():

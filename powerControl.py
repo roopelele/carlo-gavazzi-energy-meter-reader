@@ -17,8 +17,7 @@ fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 inputFile = "data.txt"
 # Some global variables, don't touch
 power = 0
-powerList = []
-lastData = [0, 0, 0, 0]
+lastData = 0
 
 
 def configRead():
@@ -68,14 +67,12 @@ def readData(tries = 0):
     try:
         with open(inputFile, 'r') as file:
             data = file.read().split(",")
-            data[0] = int(data[0]) * -1
-            for i in range(1,4):
-                data[i] = float(data[i])
+            data = int(data) * -1
     except Exception as e:
         time.sleep(0.01)
         data = readData(tries + 1)
-    if data[0] == lastData[0]:
-        return [0, 0, 0, 0]
+    if data == lastData:
+        return 0
     lastData = data
     return(data)
 
@@ -108,42 +105,14 @@ def control(p):
 # This is the core function for running all the other functions in the correct order
 # And calculating the amount of power provided
 def powerManage():
-    global power, powerList
-    d = readData()
-    data = d[0]
+    global power
+    data = readData()
     power += (data * POWER_CHANGE_MULTIPLIER) - EXTRA_POWER
-    powerList.append(lastData)
-    fissio()
     if power < MIN_POWER + POWER_DELTA:
         power = MIN_POWER
     elif power > (MAX_POWER * len(PINS)) - POWER_DELTA:
         power = (MAX_POWER * len(PINS))
     control(power)
-
-
-# This is the function for fissio integration
-def fissio():
-    try:
-        global powerList
-        if len(powerList) == 60:
-            t = str(int(time.time()))
-            sum = 0
-            for entry in powerList:
-                sum += entry[0]
-            minute = round( (((sum / 60.0) / 1000) * -1), 3)
-            with open(fissioPath, "a") as file:
-                file.write(t + ";temp;Teho;" + str(minute) + ";null;\n")
-            for i in range(1, 4):
-                sum = 0.0
-                for entry in powerList:
-                    sum += entry[i]
-                minute = round((sum / 60), 3)
-                with open(fissioPath, "a") as file:
-                    file.write(t + ";temp;Virta_" + str(i) + ";" + str(minute) + ";null;\n")
-            powerList = []
-    except ValueError:
-        return
-    return
 
 
 # Simple main function for the program
