@@ -6,6 +6,7 @@ FILENAME = "/home/pi/energy/tmp.txt"
 VALUES = [0, 0, 0, 0]
 AMOUNT = 0
 
+time.sleep(5)
 try:
     t = str(int(time.time()) - 5)
     with open(FILENAME, 'r') as file:
@@ -22,6 +23,8 @@ try:
     text += "\n"
     with open(fissioPath, "a") as file:
         file.write(text)
+    with open("/home/pi/energy/LOG.txt", 'a') as file:
+        file.write(text)
 except ValueError as e:
-    with open("/home/pi/energy/LOG.txt", 'a'):
-         file.write(f"{time.time()}:{e.message}")
+    with open("/home/pi/energy/LOG.txt", 'a') as file:
+         file.write(f"{time.time()}:unknown error\n")
