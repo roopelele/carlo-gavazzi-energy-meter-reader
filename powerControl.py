@@ -2,19 +2,23 @@
 
 import RPi.GPIO as GPIO
 import time
+import os
 
 # Some values used to calculate power
 MIN_POWER = 0
 MAX_POWER = 1000
 POWER_DELTA = 0
 EXTRA_POWER = 0
-POWER_CHANGE_MULTIPLIER = 1.0
+POWER_CHANGE_MULTIPLIER = 0.9
 # RasPi pins used to control
 PINS = [3, 5, 7]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
+
+DIR = os.getcwd()
+
 # Name of the input filename
-inputFile = "data.txt"
+inputFile = os.path.join(DIR, "data.txt")
 # Some global variables, don't touch
 power = 0
 lastData = 0
@@ -22,7 +26,7 @@ lastData = 0
 
 def configRead():
     global MIN_POWER, MAX_POWER, POWER_DELTA, POWER_CHANGE_MULTIPLIER, EXTRA_POWER, PINS, fissioPath, inputFile
-    with open("config.txt", 'r') as file:
+    with open(os.path.join(DIR, "config.txt"), 'r') as file:
         for row in file:
             data = row.split("=")
             if len(data) != 2:
@@ -66,7 +70,7 @@ def readData(tries = 0):
         return 0
     try:
         with open(inputFile, 'r') as file:
-            data = file.read().split(",")
+            data = file.read()
             data = int(data) * -1
     except Exception as e:
         time.sleep(0.01)
