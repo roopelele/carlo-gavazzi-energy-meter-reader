@@ -73,7 +73,7 @@ def do_char_dev(args):
         with serial.serial_for_url(DEVICE,
                            baudrate, 8, 'E', 1,
                            inter_byte_timeout=ibt,
-                           timeout=1) as ser:
+                           timeout=0.3) as ser:
             frame = None
 
             if meterbus.is_primary_address(address):
