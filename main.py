@@ -1,4 +1,5 @@
 from math import floor
+from sys import exit
 import os
 import time
 import json
@@ -50,7 +51,9 @@ async def powerManage():
         data = await get_data()
         tmp = int(data["body"]["records"][2]["value"])
     except Exception as e:
+        log(e)
         print(e)
+        exit()
         return
     last_minute.append(tmp)
     watts = tmp
@@ -85,13 +88,20 @@ def setState(newstate):
     state = newstate
     GPIO.output(PINS, state)
 
+def log(msg):
+    with open("/home/pi/energy/LOG.txt", 'a') as outfile:
+        outfile.write(f"{int(time.time())}: {msg}")
+
 async def main():
+    print("initializing...")
     global watts, joules, last_minute
     setState(False)
     second = floor(time.time() % 3600)
     setup()
     start = time.time() - second
     print(second, second / 60, second % 60)
+    print("starting energy control")
+    log("starting")
     while True:
         second += 1
         await powerManage()
@@ -100,14 +110,16 @@ async def main():
             setState(True)
         if state and joules > 0:
             setState(False)
-        if floor(t % 60) == 0:
-            print(f"watts: {watts:10}, joules: {joules:10}")
-            with open(fissioPath, 'a') as outfile:
-                outfile.write(f"{t};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;")
+        if floor(t % 60) == 5: # Every minute, on the 5th second to prevent file write error with fissio
+            print(f"watts: {watts:10}, joules: {joules:10}, data entries: {len(last_minute)}")
+            try:
+                with open(fissioPath, 'a') as outfile:
+                    outfile.write(f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n")
+            except Exception as e:
+                log(str(e))
             last_minute = []
         if floor(t % 3600) == 0:
-            with open("/home/pi/energy/LOG.txt", 'a') as outfile:
-                outfile.write(f"hourly energy: {joules}\n")
+            log(f"hourly energy: {joules}\n")
             joules = 0
             setState(False)
             watts = 0
