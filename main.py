@@ -52,7 +52,6 @@ async def powerManage():
         tmp = int(data["body"]["records"][2]["value"])
     except Exception as e:
         log(e)
-        print(e)
         exit()
         return
     last_minute.append(tmp)
@@ -81,7 +80,6 @@ async def get_data():
         return {}
 
 def setState(newstate):
-    print(f"setstate({newstate})")
     global state, PINS
     if state == newstate:
         return
@@ -93,14 +91,11 @@ def log(msg):
         outfile.write(f"{int(time.time())}: {msg}")
 
 async def main():
-    print("initializing...")
     global watts, joules, last_minute
     setState(False)
     second = floor(time.time() % 3600)
     setup()
     start = time.time() - second
-    print(second, second / 60, second % 60)
-    print("starting energy control")
     log("starting")
     while True:
         second += 1
@@ -111,7 +106,6 @@ async def main():
         if state and joules > 0:
             setState(False)
         if floor(t % 60) == 5: # Every minute, on the 5th second to prevent file write error with fissio
-            print(f"watts: {watts:10}, joules: {joules:10}, data entries: {len(last_minute)}")
             try:
                 with open(fissioPath, 'a') as outfile:
                     outfile.write(f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n")
@@ -119,7 +113,6 @@ async def main():
                 log(str(e))
             last_minute = []
         if floor(t % 3600) == 0:
-            log(f"hourly energy: {joules}\n")
             joules = 0
             setState(False)
             watts = 0
