@@ -47,7 +47,9 @@ def main():
     req = requests.get(IP, params=PARAMS)
     if req.status_code == 200:
         d = req.json()["Body"]["Data"]
-        text += f"temp;ATeho;{(d['PAC']['Values']['1']/1000.0):.2f};null;\n"
+        ATeho = d['PAC']['Values']['1']/1000.0
+        if ATeho != 0:
+            text += f"temp;ATeho;{ATeho:.2f};null;\n"
         text += f"temp;PTeho;{(d['DAY_ENERGY']['Values']['1']/1000.0):.2f};null;\n"
     with open(fissioPath, 'a') as outfile:
         outfile.write(text)
