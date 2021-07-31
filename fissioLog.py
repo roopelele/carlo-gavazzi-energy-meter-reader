@@ -6,7 +6,7 @@ import requests
 
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 IP = "http://192.168.68.104/solar_api/v1/GetInverterRealtimeData.cgi"
-PARAMS = {"scope": "System"}
+PARAMS = {"Scope": "System"}
 
 def read_sensors():
     rtn = {}
@@ -47,10 +47,10 @@ def main():
     req = requests.get(IP, params=PARAMS)
     if req.status_code == 200:
         d = req.json()["Body"]["Data"]
-        ATeho = d['PAC']['Values']['1']/1000.0
+        ATeho = -1*d['PAC']['Values']['1']/1000.0
         if ATeho != 0:
-            text += f"temp;ATeho;{ATeho:.2f};null;\n"
-        text += f"temp;PTeho;{(d['DAY_ENERGY']['Values']['1']/1000.0):.2f};null;\n"
+            text += f"{int(time.time())};temp;Aurinko;{ATeho:.2f};null;\n"
+        text += f"{int(time.time())};temp;A_kWh;{(d['DAY_ENERGY']['Values']['1']/1000.0):.2f};null;\n"
     with open(fissioPath, 'a') as outfile:
         outfile.write(text)
 
