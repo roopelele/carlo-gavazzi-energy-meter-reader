@@ -17,6 +17,8 @@ MAX_POWER = 1000
 INTERVAL = 10 #minutes
 # RasPi pins used to control
 PINS = [3, 5, 7]
+# Pin used for water meter pulses
+METER_PIN = 37
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
@@ -26,12 +28,19 @@ DIR = os.getcwd()
 watts = 0
 last_minute = []
 joules = 0
+pulses = 0
 state = False
+
+def pulseReceived(gpio):
+    global pulses
+    pulses += 1
 
 def setup():
     GPIO.setmode(GPIO.BOARD)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
+    GPIO.setup(METER_PIN, GPIO.IN)
+    GPIO.add_event_detect(METER_PIN, GPIO.FALLING, callback=pulseReceived, bouncetime=40)
 
 def ping_address(ser, address, retries=5):
     for i in range(0, retries + 1):
@@ -87,11 +96,12 @@ def setState(newstate):
     GPIO.output(PINS, state)
 
 def log(msg):
+    print(msg)
     with open("/home/pi/energy/LOG.txt", 'a') as outfile:
         outfile.write(f"{int(time.time())}: {msg}")
 
 async def main():
-    global watts, joules, last_minute
+    global watts, joules, last_minute, pulses
     setState(False)
     second = floor(time.time() % 3600)
     setup()
@@ -108,7 +118,9 @@ async def main():
         if floor(t % 60) == 5: # Every minute, on the 5th second to prevent file write error with fissio
             try:
                 with open(fissioPath, 'a') as outfile:
-                    outfile.write(f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n")
+                    text = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
+                    text += f"{t-5};temp;Vesi;{pulses};null;\n"
+                    outfile.write(text)
             except Exception as e:
                 log(str(e))
             last_minute = []
@@ -121,6 +133,8 @@ async def main():
             start = time.time()
             continue
         time.sleep(abs(second - (time.time() - start)))
+        if floor(t % 86400) == 0:
+            pulses = 0
 
 
 asyncio.run(main())
