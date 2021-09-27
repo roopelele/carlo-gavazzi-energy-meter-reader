@@ -100,6 +100,27 @@ def log(msg):
     with open("/home/pi/energy/LOG.txt", 'a') as outfile:
         outfile.write(f"{int(time.time())}: {msg}")
 
+def minute(t):
+    global last_minute, pulses
+    try:
+        with open(fissioPath, 'a') as outfile:
+            text = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
+            text += f"{t-5};temp;Vesi;{(pulses/10.0):.1f};null;\n"
+            outfile.write(text)
+    except Exception as e:
+        log(str(e))
+    last_minute = []
+
+def hour():
+    global watts, joules
+    joules = 0
+    setState(False)
+    watts = 0
+
+def day():
+    global pulses
+    pulses = 0
+
 async def main():
     global watts, joules, last_minute, pulses
     setState(False)
@@ -116,25 +137,16 @@ async def main():
         if state and joules > 0:
             setState(False)
         if floor(t % 60) == 5: # Every minute, on the 5th second to prevent file write error with fissio
-            try:
-                with open(fissioPath, 'a') as outfile:
-                    text = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
-                    text += f"{t-5};temp;Vesi;{pulses};null;\n"
-                    outfile.write(text)
-            except Exception as e:
-                log(str(e))
-            last_minute = []
+            minute(t)
+        if floor(t % 86400) == 0:
+            day()
         if floor(t % 3600) == 0:
-            joules = 0
-            setState(False)
-            watts = 0
+            hour()
             time.sleep(second-(time.time()-start))
             second = 0
             start = time.time()
             continue
-        time.sleep(abs(second - (time.time() - start)))
-        if floor(t % 86400) == 0:
-            pulses = 0
+        time.sleep(abs(second-(time.time()-start)))
 
 
 asyncio.run(main())
