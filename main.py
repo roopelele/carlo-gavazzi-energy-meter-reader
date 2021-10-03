@@ -39,7 +39,7 @@ def setup():
     GPIO.setmode(GPIO.BOARD)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
-    GPIO.setup(METER_PIN, GPIO.IN)
+    GPIO.setup(METER_PIN, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
     GPIO.add_event_detect(METER_PIN, GPIO.FALLING, callback=pulseReceived, bouncetime=40)
 
 def ping_address(ser, address, retries=5):
@@ -100,7 +100,8 @@ def log(msg):
     with open("/home/pi/energy/LOG.txt", 'a') as outfile:
         outfile.write(f"{int(time.time())}: {msg}")
 
-def minute(t):
+def minute():
+    t = int(time.time())
     global last_minute, pulses
     try:
         with open(fissioPath, 'a') as outfile:
@@ -131,21 +132,22 @@ async def main():
     while True:
         second += 1
         await powerManage()
-        t = int(time.time())
+        t = time.localtime()
         if (not state) and (joules < (min((3600 - second), (INTERVAL*60)) * -(MAX_POWER * len(PINS)))):
             setState(True)
         if state and joules > 0:
             setState(False)
-        if floor(t % 60) == 5: # Every minute, on the 5th second to prevent file write error with fissio
-            minute(t)
-        if floor(t % 86400) == 0:
-            day()
-        if floor(t % 3600) == 0:
-            hour()
-            time.sleep(second-(time.time()-start))
-            second = 0
-            start = time.time()
-            continue
+        if t.tm_sec == 5: # Every minute, on the 5th second to prevent file write error with fissio
+            minute()
+        if t.tm_sec == 0:
+            if t.tm_hour == 0 and t.tm_min == 0:
+                day()
+            if t.tm_min == 0:
+                hour()
+                time.sleep(second-(time.time()-start))
+                second = 0
+                start = time.time()
+                continue
         time.sleep(abs(second-(time.time()-start)))
 
 
