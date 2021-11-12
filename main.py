@@ -8,6 +8,7 @@ import serial
 import meterbus
 import stat
 import RPi.GPIO as GPIO
+import numpy as np
 
 DEVICE = "/dev/ttyUSB0"
 BAUDRATE = 9600
@@ -25,6 +26,7 @@ fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 DIR = os.getcwd()
 
 # Some global variables, don't touch
+amps = []
 watts = 0
 last_minute = []
 joules = 0
@@ -55,14 +57,15 @@ def ping_address(ser, address, retries=5):
     return False
 
 async def powerManage():
-    global watts, joules
+    global watts, joules, amps
     try:
-        data = await get_data()
-        tmp = int(data["body"]["records"][2]["value"])
+        data = (await get_data())["body"]["records"]
+        tmp = int(data[2]["value"])
     except Exception as e:
         log(e)
         exit()
         return
+    amps.append([d["value"] for d in data[8:11]])
     last_minute.append(tmp)
     watts = tmp
     joules += tmp
@@ -98,19 +101,23 @@ def setState(newstate):
 def log(msg):
     print(msg)
     with open("/home/pi/energy/LOG.txt", 'a') as outfile:
-        outfile.write(f"{int(time.time())}: {msg}")
+        outfile.write(f"{int(time.time())}: {msg}\n")
 
 def minute():
     t = int(time.time())
-    global last_minute, pulses
+    global last_minute, pulses, amps
+    amps = np.array(amps)
     try:
         with open(fissioPath, 'a') as outfile:
             text = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
             text += f"{t-5};temp;Vesi;{(pulses/10.0):.1f};null;\n"
+            for i in range(amps.shape[1]):
+                text += f"{t-5};temp;Virta_{i+1};{np.max(amps[:,i]):.3f};null;\n"
             outfile.write(text)
     except Exception as e:
         log(str(e))
     last_minute = []
+    amps = []
 
 def hour():
     global watts, joules
