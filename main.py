@@ -24,6 +24,7 @@ METER_PIN = 37
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
 DIR = os.getcwd()
+totalFile = os.path.join(DIR, "total.txt")
 
 # Some global variables, don't touch
 amps = []
@@ -31,18 +32,27 @@ watts = 0
 last_minute = []
 joules = 0
 pulses = 0
+total = 0
 state = False
 
 def pulseReceived(gpio):
-    global pulses
+    global pulses, total
     pulses += 1
+    total += 1
 
 def setup():
+    global total
+    try:
+        with open(totalFile, 'r') as infile:
+            total = int(infile.read().strip())
+    except:
+        total = 0
+    print(f"total water amount: {total}")
     GPIO.setmode(GPIO.BOARD)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
     GPIO.setup(METER_PIN, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-    GPIO.add_event_detect(METER_PIN, GPIO.FALLING, callback=pulseReceived, bouncetime=40)
+    GPIO.add_event_detect(METER_PIN, GPIO.RISING, callback=pulseReceived, bouncetime=40)
 
 def ping_address(ser, address, retries=5):
     for i in range(0, retries + 1):
@@ -103,7 +113,7 @@ def log(msg):
     with open("/home/pi/energy/LOG.txt", 'a') as outfile:
         outfile.write(f"{int(time.time())}: {msg}\n")
 
-def minute():
+async def minute():
     t = int(time.time())
     global last_minute, pulses, amps
     amps = np.array(amps)
@@ -119,13 +129,15 @@ def minute():
     last_minute = []
     amps = []
 
-def hour():
+async def hour():
     global watts, joules
     joules = 0
     setState(False)
     watts = 0
+    with open(totalFile, 'w') as outfile:
+        outfile.write(str(total))
 
-def day():
+async def day():
     global pulses
     pulses = 0
 
@@ -145,12 +157,11 @@ async def main():
         if state and joules > 0:
             setState(False)
         if t.tm_sec == 5: # Every minute, on the 5th second to prevent file write error with fissio
-            minute()
-        if t.tm_sec == 0:
-            if t.tm_hour == 0 and t.tm_min == 0:
-                day()
+            await asyncio.create_task(minute())
             if t.tm_min == 0:
-                hour()
+                await asyncio.create_task(hour())
+                if t.tm_hour == 0:
+                    await asyncio.create_task(day())
                 time.sleep(second-(time.time()-start))
                 second = 0
                 start = time.time()
