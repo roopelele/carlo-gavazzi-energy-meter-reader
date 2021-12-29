@@ -14,17 +14,16 @@ DEVICE = "/dev/ttyUSB0"
 BAUDRATE = 9600
 
 MIN_POWER = 0
-MAX_POWER = 1000
+MAX_POWER = 3000
 INTERVAL = 10 #minutes
 # RasPi pins used to control
-PINS = [3, 5, 7]
+PINS = [32]
 # Pin used for water meter pulses
-METER_PIN = 37
+METER_PIN = 7
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
 DIR = os.getcwd()
-totalFile = os.path.join(DIR, "total.txt")
 
 # Some global variables, don't touch
 amps = []
@@ -32,27 +31,18 @@ watts = 0
 last_minute = []
 joules = 0
 pulses = 0
-total = 0
 state = False
 
 def pulseReceived(gpio):
-    global pulses, total
+    global pulses
     pulses += 1
-    total += 1
 
 def setup():
-    global total
-    try:
-        with open(totalFile, 'r') as infile:
-            total = int(infile.read().strip())
-    except:
-        total = 0
-    print(f"total water amount: {total}")
     GPIO.setmode(GPIO.BOARD)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
-    GPIO.setup(METER_PIN, GPIO.IN, pull_up_down = GPIO.PUD_DOWN)
-    GPIO.add_event_detect(METER_PIN, GPIO.RISING, callback=pulseReceived, bouncetime=40)
+    GPIO.setup(METER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    GPIO.add_event_detect(METER_PIN, GPIO.FALLING, callback=pulseReceived, bouncetime=40)
 
 def ping_address(ser, address, retries=5):
     for i in range(0, retries + 1):
@@ -75,7 +65,7 @@ async def powerManage():
         log(e)
         exit()
         return
-    amps.append([d["value"] for d in data[8:11]])
+    amps.append([ d["value"] for d in data[8:11] ])
     last_minute.append(tmp)
     watts = tmp
     joules += tmp
@@ -118,11 +108,11 @@ async def minute():
     global last_minute, pulses, amps
     amps = np.array(amps)
     try:
+        text  = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
+        text += f"{t-5};temp;Vesi;{(pulses/10.0):.1f};null;\n"
+        for i in range(amps.shape[1]):
+            text += f"{t-5};temp;Virta_{i+1};{np.max(amps[:,i]):.3f};null;\n"
         with open(fissioPath, 'a') as outfile:
-            text = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
-            text += f"{t-5};temp;Vesi;{(pulses/10.0):.1f};null;\n"
-            for i in range(amps.shape[1]):
-                text += f"{t-5};temp;Virta_{i+1};{np.max(amps[:,i]):.3f};null;\n"
             outfile.write(text)
     except Exception as e:
         log(str(e))
@@ -134,8 +124,6 @@ async def hour():
     joules = 0
     setState(False)
     watts = 0
-    with open(totalFile, 'w') as outfile:
-        outfile.write(str(total))
 
 async def day():
     global pulses
@@ -170,3 +158,5 @@ async def main():
 
 
 asyncio.run(main())
+
+GPIO.cleanup() # Add this to the end of a program
