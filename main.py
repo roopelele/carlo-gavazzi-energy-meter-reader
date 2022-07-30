@@ -11,15 +11,14 @@ import RPi.GPIO as GPIO
 import numpy as np
 
 DEVICE = "/dev/ttyUSB0"
-BAUDRATE = 9600
+BAUDRATE = 2400
 
+REVERSE_CONTROL = True
 MIN_POWER = 0
 MAX_POWER = 3000
-INTERVAL = 10 #minutes
-# RasPi pins used to control
-PINS = [32]
-# Pin used for water meter pulses
-METER_PIN = 7
+INTERVAL = 10 # minutes
+# GPIO pins used to control
+PINS = [2]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
 
@@ -31,20 +30,15 @@ watts = 0
 last_minute = []
 joules = 0
 pulses = 0
-state = False
-
-def pulseReceived(gpio):
-    global pulses
-    pulses += 1
+state = None
 
 def setup():
-    GPIO.setmode(GPIO.BOARD)
+    GPIO.setmode(GPIO.BCM)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
-    GPIO.setup(METER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-    GPIO.add_event_detect(METER_PIN, GPIO.FALLING, callback=pulseReceived, bouncetime=40)
 
-def ping_address(ser, address, retries=5):
+
+def ping_address(ser, address, retries=2):
     for i in range(0, retries + 1):
         meterbus.send_ping_frame(ser, address)
         try:
@@ -59,10 +53,11 @@ def ping_address(ser, address, retries=5):
 async def powerManage():
     global watts, joules, amps
     try:
-        data = (await get_data())["body"]["records"]
+        data = await get_data()
+        data = data["body"]["records"]
         tmp = int(data[2]["value"])
     except Exception as e:
-        log(e)
+        log(f"powerManage: error: {str(e)}")
         exit()
         return
     amps.append([ d["value"] for d in data[8:11] ])
@@ -73,13 +68,12 @@ async def powerManage():
 async def get_data():
     try:
         ibt = meterbus.inter_byte_timeout(BAUDRATE)
-        with serial.serial_for_url(DEVICE, BAUDRATE, 8, 'E', 1, inter_byte_timeout=ibt, timeout=0.4) as ser:
+        with serial.serial_for_url(DEVICE, BAUDRATE, 8, 'E', 1, inter_byte_timeout=ibt, timeout=0.8) as ser:
             frame = None
             status = False
             meterbus.send_request_frame(ser, 0)
             d = b""
             while frame is None:
-                start = time.time()
                 characters = ser.read(meterbus.FRAME_DATA_LENGTH)
                 if isinstance(characters, str):
                     characters = bytearray(characters)
@@ -88,7 +82,11 @@ async def get_data():
         frame = meterbus.load(d)
         if frame is not None:
             return json.loads(frame.to_JSON())
-    except:
+        else:
+            log("frame is None")
+            return {}
+    except Exception as e:
+        log(f"get_data(): error: {str(e)}")
         return {}
 
 def setState(newstate):
@@ -96,22 +94,29 @@ def setState(newstate):
     if state == newstate:
         return
     state = newstate
-    GPIO.output(PINS, state)
+    log(f"state changed to {state}")
+    state = newstate
+    if REVERSE_CONTROL:
+        GPIO.output(PINS, state)
+    else:
+        GPIO.output(PINS, not state)
 
 def log(msg):
     print(msg)
-    with open("/home/pi/energy/LOG.txt", 'a') as outfile:
-        outfile.write(f"{int(time.time())}: {msg}\n")
+    with open("/home/pi/LOG.txt", 'a') as outfile:
+        outfile.write(f"{time.strftime('%Y-%m-%d %H:%M')}: {msg}\n")
+
+def fissioString(timestamp, name, value):
+    return f"{timestamp};temp;{name};{value};null;\n"
 
 async def minute():
     t = int(time.time())
     global last_minute, pulses, amps
     amps = np.array(amps)
     try:
-        text  = f"{t-5};temp;Teho;{((sum(last_minute)/len(last_minute))/1000):.3f};null;\n"
-        text += f"{t-5};temp;Vesi;{(pulses/10.0):.1f};null;\n"
+        text = fissioString(t, "Teho", f"{((sum(last_minute)/len(last_minute))/1000):.3f}")
         for i in range(amps.shape[1]):
-            text += f"{t-5};temp;Virta_{i+1};{np.max(amps[:,i]):.3f};null;\n"
+            text += fissioString(t, f"Virta_{i+1}",  f"{np.max(amps[:,i]):.3f}")
         with open(fissioPath, 'a') as outfile:
             outfile.write(text)
     except Exception as e:
@@ -121,6 +126,7 @@ async def minute():
 
 async def hour():
     global watts, joules
+    log(f"Time period ended. Stats: joules = {joules}, watts = {watts}")
     joules = 0
     setState(False)
     watts = 0
@@ -128,14 +134,15 @@ async def hour():
 async def day():
     global pulses
     pulses = 0
+    log("Daily reset")
 
 async def main():
     global watts, joules, last_minute, pulses
-    setState(False)
     second = floor(time.time() % 3600)
     setup()
     start = time.time() - second
     log("starting")
+    setState(False)
     while True:
         second += 1
         await powerManage()
