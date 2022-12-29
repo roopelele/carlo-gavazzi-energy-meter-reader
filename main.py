@@ -12,8 +12,9 @@ import numpy as np
 
 DEVICE = "/dev/ttyUSB0"
 BAUDRATE = 2400
+SER_TIMEOUT = 0.8
 
-REVERSE_CONTROL = True
+REVERSE_CONTROL = False
 MIN_POWER = 0
 MAX_POWER = 3000
 INTERVAL = 10 # minutes
@@ -21,6 +22,7 @@ INTERVAL = 10 # minutes
 PINS = [2]
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
+hassPath = "/home/homeassistant/data/"
 
 DIR = os.getcwd()
 
@@ -33,6 +35,7 @@ pulses = 0
 state = None
 
 def setup():
+    log("setup")
     GPIO.setmode(GPIO.BCM)
     for pin in PINS:
         GPIO.setup(pin, GPIO.OUT)
@@ -68,7 +71,7 @@ async def powerManage():
 async def get_data():
     try:
         ibt = meterbus.inter_byte_timeout(BAUDRATE)
-        with serial.serial_for_url(DEVICE, BAUDRATE, 8, 'E', 1, inter_byte_timeout=ibt, timeout=0.8) as ser:
+        with serial.serial_for_url(DEVICE, BAUDRATE, 8, 'E', 1, inter_byte_timeout=ibt, timeout=SER_TIMEOUT, write_timeout=SER_TIMEOUT) as ser:
             frame = None
             status = False
             meterbus.send_request_frame(ser, 0)
@@ -114,11 +117,16 @@ async def minute():
     global last_minute, pulses, amps
     amps = np.array(amps)
     try:
-        text = fissioString(t, "Teho", f"{((sum(last_minute)/len(last_minute))/1000):.3f}")
+        with open(os.path.join(hassPath, "P.txt"), 'w') as outfile:
+            outfile.write(f"{int( (sum(last_minute)/len(last_minute)) )}\n")
         for i in range(amps.shape[1]):
-            text += fissioString(t, f"Virta_{i+1}",  f"{np.max(amps[:,i]):.3f}")
-        with open(fissioPath, 'a') as outfile:
-            outfile.write(text)
+            with open(os.path.join(hassPath, f"A_{i}.txt"), 'w') as outfile:
+                outfile.write(f"{np.max(amps[:,i]):.3f}\n")
+        #text = fissioString(t, "Teho", f"{((sum(last_minute)/len(last_minute))/1000):.3f}")
+        #for i in range(amps.shape[1]):
+        #    text += fissioString(t, f"Virta_{i+1}",  f"{np.max(amps[:,i]):.3f}")
+        #with open(fissioPath, 'a') as outfile:
+        #    outfile.write(text)
     except Exception as e:
         log(str(e))
     last_minute = []
@@ -126,7 +134,7 @@ async def minute():
 
 async def hour():
     global watts, joules
-    log(f"Time period ended. Stats: joules = {joules}, watts = {watts}")
+    log(f"Time period ended. Stats: joules = {joules}")
     joules = 0
     setState(False)
     watts = 0
@@ -163,7 +171,8 @@ async def main():
                 continue
         time.sleep(abs(second-(time.time()-start)))
 
-
+log("asyncio.run(main())")
 asyncio.run(main())
 
+log("Main loop exited")
 GPIO.cleanup() # Add this to the end of a program
