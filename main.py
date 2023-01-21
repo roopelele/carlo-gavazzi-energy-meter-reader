@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from math import floor
 from sys import exit
 import os
@@ -18,18 +20,20 @@ REVERSE_CONTROL = False
 MIN_POWER = 0
 MAX_POWER = 3000
 INTERVAL = 10 # minutes
-# GPIO pins used to control
-PINS = [2]
+NUM_AMPS = 3 # Amount of current measurements
+PIN = 2
 # Path to fissio folder
 fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
-hassPath = "/home/homeassistant/data/"
+hassPath = "/dev/shm/"
+#hassPath = "/home/homeassistant/data/"
 
 DIR = os.getcwd()
 
 # Some global variables, don't touch
-amps = []
+amps = np.zeros((60, NUM_AMPS))
+last_minute = np.zeros(60)
+idx_minute = 0
 watts = 0
-last_minute = []
 joules = 0
 pulses = 0
 state = None
@@ -37,8 +41,7 @@ state = None
 def setup():
     log("setup")
     GPIO.setmode(GPIO.BCM)
-    for pin in PINS:
-        GPIO.setup(pin, GPIO.OUT)
+    GPIO.setup(PIN, GPIO.OUT)
 
 
 def ping_address(ser, address, retries=2):
@@ -54,7 +57,7 @@ def ping_address(ser, address, retries=2):
     return False
 
 async def powerManage():
-    global watts, joules, amps
+    global watts, joules, amps, last_minute, idx_minute
     try:
         data = await get_data()
         data = data["body"]["records"]
@@ -63,10 +66,12 @@ async def powerManage():
         log(f"powerManage: error: {str(e)}")
         exit()
         return
-    amps.append([ d["value"] for d in data[8:11] ])
-    last_minute.append(tmp)
+    for j, d in enumerate(data[8:11]):
+        amps[idx_minute, j] = d["value"]
+    last_minute[idx_minute] = tmp
     watts = tmp
     joules += tmp
+    idx_minute += 1
 
 async def get_data():
     try:
@@ -93,85 +98,60 @@ async def get_data():
         return {}
 
 def setState(newstate):
-    global state, PINS
+    global state, PIN
     if state == newstate:
         return
     state = newstate
     log(f"state changed to {state}")
     state = newstate
     if REVERSE_CONTROL:
-        GPIO.output(PINS, state)
+        GPIO.output(PIN, state)
     else:
-        GPIO.output(PINS, not state)
+        GPIO.output(PIN, not state)
 
 def log(msg):
     print(msg)
     with open("/home/pi/LOG.txt", 'a') as outfile:
-        outfile.write(f"{time.strftime('%Y-%m-%d %H:%M')}: {msg}\n")
-
-def fissioString(timestamp, name, value):
-    return f"{timestamp};temp;{name};{value};null;\n"
+        outfile.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: {msg}\n")
 
 async def minute():
     t = int(time.time())
-    global last_minute, pulses, amps
-    amps = np.array(amps)
+    global last_minute, pulses, amps, idx_minute
+    amps = amps[:idx_minute]
+    last_minute = last_minute[:idx_minute]
     try:
         with open(os.path.join(hassPath, "P.txt"), 'w') as outfile:
-            outfile.write(f"{int( (sum(last_minute)/len(last_minute)) )}\n")
+            outfile.write(f"{int( (np.sum(last_minute)/np.size(last_minute)) )}\n")
         for i in range(amps.shape[1]):
             with open(os.path.join(hassPath, f"A_{i}.txt"), 'w') as outfile:
                 outfile.write(f"{np.max(amps[:,i]):.3f}\n")
-        #text = fissioString(t, "Teho", f"{((sum(last_minute)/len(last_minute))/1000):.3f}")
-        #for i in range(amps.shape[1]):
-        #    text += fissioString(t, f"Virta_{i+1}",  f"{np.max(amps[:,i]):.3f}")
-        #with open(fissioPath, 'a') as outfile:
-        #    outfile.write(text)
     except Exception as e:
         log(str(e))
-    last_minute = []
-    amps = []
-
-async def hour():
-    global watts, joules
-    log(f"Time period ended. Stats: joules = {joules}")
-    joules = 0
-    setState(False)
-    watts = 0
-
-async def day():
-    global pulses
-    pulses = 0
-    log("Daily reset")
+    last_minute = np.zeros(60)
+    amps = np.zeros((60, 3))
+    idx_minute = 0
 
 async def main():
     global watts, joules, last_minute, pulses
     second = floor(time.time() % 3600)
     setup()
     start = time.time() - second
-    log("starting")
     setState(False)
     while True:
         second += 1
         await powerManage()
-        t = time.localtime()
-        if (not state) and (joules < (min((3600 - second), (INTERVAL*60)) * -(MAX_POWER * len(PINS)))):
+        if (not state) and (joules < (min((3600 - second), (INTERVAL*60)) * -(MAX_POWER)) ):
             setState(True)
         if state and joules > 0:
             setState(False)
-        if t.tm_sec == 5: # Every minute, on the 5th second to prevent file write error with fissio
+        t = time.localtime()
+        if t.tm_sec == 30:
             await asyncio.create_task(minute())
-            if t.tm_min == 0:
-                await asyncio.create_task(hour())
-                if t.tm_hour == 0:
-                    await asyncio.create_task(day())
-                time.sleep(second-(time.time()-start))
-                second = 0
-                start = time.time()
-                continue
+            if t.tm_min == 59:
+                return
         time.sleep(abs(second-(time.time()-start)))
 
-log("asyncio.run(main())")
+
 asyncio.run(main())
 
 log("Main loop exited")

@@ -1,0 +1,12 @@
+[Unit]
+Description=Energy meter reader and heating control
+After=networking.service
+
+[Service]
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/bin/python3 /home/pi/carlo-gavazzi-energy-meter-reader/main.py
+Type=simple
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
