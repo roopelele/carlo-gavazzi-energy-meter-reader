@@ -3,6 +3,7 @@ Description=Energy meter reader and heating control
 After=networking.service
 
 [Service]
+ExecStartPre=/usr/bin/bash /home/pi/carlo-gavazzi-energy-meter-reader/boot.sh
 ExecStartPre=/bin/sleep 30
 ExecStart=/usr/bin/python3 /home/pi/carlo-gavazzi-energy-meter-reader/main.py
 Type=simple
