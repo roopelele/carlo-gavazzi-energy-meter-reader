@@ -16,16 +16,15 @@ DEVICE = "/dev/ttyUSB0"
 BAUDRATE = 2400
 SER_TIMEOUT = 0.8
 
+LOGFILE = "/home/roope/LOG.txt"
+
 REVERSE_CONTROL = False
 MIN_POWER = 0
 MAX_POWER = 3000
 INTERVAL = 10 # minutes
 NUM_AMPS = 3 # Amount of current measurements
-PIN = 2
-# Path to fissio folder
-fissioPath = "/home/pi/.fissio/mittaustiedot.txt"
+PIN = 3
 hassPath = "/dev/shm/"
-#hassPath = "/home/homeassistant/data/"
 
 DIR = os.getcwd()
 
@@ -111,7 +110,7 @@ def setState(newstate):
 
 def log(msg):
     print(msg)
-    with open("/home/pi/LOG.txt", 'a') as outfile:
+    with open(LOGFILE, 'a') as outfile:
         outfile.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}: {msg}\n")
 
 async def minute():
