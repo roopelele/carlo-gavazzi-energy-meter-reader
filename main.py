@@ -21,7 +21,6 @@ LOGFILE = "/home/roope/LOG.txt"
 REVERSE_CONTROL = False
 MIN_POWER = 0
 MAX_POWER = 3000
-INTERVAL = 10 # minutes
 NUM_AMPS = 3 # Amount of current measurements
 PIN = 3
 hassPath = "/dev/shm/"
@@ -132,21 +131,21 @@ async def minute():
 
 async def main():
     global watts, joules, last_minute, pulses
-    second = floor(time.time() % 3600)
+    second = floor(time.time() % 900)
     setup()
     start = time.time() - second
     setState(False)
     while True:
         second += 1
         await powerManage()
-        if (not state) and (joules < (min((3600 - second), (INTERVAL*60)) * -(MAX_POWER)) ):
+        if (not state) and (joules < ((900 - second) * -MAX_POWER)):
             setState(True)
         if state and joules > 0:
             setState(False)
         t = time.localtime()
         if t.tm_sec == 30:
             await asyncio.create_task(minute())
-            if t.tm_min == 59:
+            if t.tm_min % 15 == 14:   # Every 15 minutes due to electricity being billed by quarter-hours
                 return
         time.sleep(abs(second-(time.time()-start)))
 
