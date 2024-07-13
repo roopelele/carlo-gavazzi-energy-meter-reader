@@ -20,7 +20,7 @@ LOGFILE = "/home/roope/LOG.txt"
 
 REVERSE_CONTROL = False
 MIN_POWER = 0
-MAX_POWER = 3000
+MAX_POWER = 2900
 NUM_AMPS = 3 # Amount of current measurements
 PIN = 3
 hassPath = "/dev/shm/"
@@ -138,9 +138,9 @@ async def main():
     while True:
         second += 1
         await powerManage()
-        if (not state) and (joules < ((900 - second) * -MAX_POWER)):
+        if shouldEnable():
             setState(True)
-        if state and joules > 0:
+        else if shouldDisable():
             setState(False)
         t = time.localtime()
         if t.tm_sec == 30:
@@ -148,6 +148,30 @@ async def main():
             if t.tm_min % 15 == 14:   # Every 15 minutes due to electricity being billed by quarter-hours
                 return
         time.sleep(abs(second-(time.time()-start)))
+
+def shouldEnable():
+    # Do nothing if already enabled
+    if state:
+        return false
+    # Negative watts = producing, therefore if watts < -2.9kW
+    # Negative joules = exported power during the last measurement period
+    if joules < 0 and watts < -MAX_POWER:
+        return true
+    # Finally, if we have exported more power than we can consume in the remaining time period,
+    # we also enable water heater (negative joules = exported energy)
+    return joules < ((900 - second) * -MAX_POWER)
+
+def shouldDisable():
+    # Do nothing if already disabled
+    if not state:
+        return false
+    # Exported power during this period, and not buying any even though water heater is enabled
+    # --> should not disable
+    # Note: in this state, the water heater is already running, therefore we compare to 0
+    if joules < 0 and watts < 0:
+        return false
+    # Disable water heater if we are about to start buying electricity
+    return joules > -1000
 
 
 asyncio.run(main())
